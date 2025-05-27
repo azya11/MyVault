@@ -2,9 +2,11 @@ import hashlib
 import sqlite3
 import re
 
+# Хэширование пароля через SHA-256
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+# Проверка сложности пароля
 def is_strong(password):
     if len(password) < 8:
         return False
@@ -18,24 +20,25 @@ def is_strong(password):
         return False
     return True
 
-def init_master_password():
+# Проверка: есть ли уже мастер-пароль
+def master_password_exists():
     conn = sqlite3.connect('vault.db')
     c = conn.cursor()
     c.execute('CREATE TABLE IF NOT EXISTS settings (master_hash TEXT)')
     c.execute('SELECT * FROM settings')
-    if not c.fetchone():
-        while True:
-            master = input("Create Master Password: ")
-            if is_strong(master):
-                break
-            else:
-                print("Password too weak. Must contain at least:\n"
-                      "- 8 characters\n- 1 uppercase letter\n- 1 lowercase letter\n- 1 digit\n- 1 special character (!@#$...)")
-        c.execute('INSERT INTO settings VALUES (?)', (hash_password(master),))
-        conn.commit()
-        exit()
+    result = c.fetchone()
+    conn.close()
+    return result is not None
+
+# Сохранение нового мастер-пароля (в хэше)
+def save_master_password(password):
+    conn = sqlite3.connect('vault.db')
+    c = conn.cursor()
+    c.execute('INSERT INTO settings VALUES (?)', (hash_password(password),))
+    conn.commit()
     conn.close()
 
+# Проверка правильности введённого мастер-пароля
 def verify_master_password(input_password):
     conn = sqlite3.connect('vault.db')
     c = conn.cursor()
@@ -46,6 +49,7 @@ def verify_master_password(input_password):
         return hash_password(input_password) == data[0]
     return False
 
+# Создание таблицы для отслеживания попыток
 def init_security_table():
     conn = sqlite3.connect("vault.db")
     c = conn.cursor()
@@ -56,6 +60,7 @@ def init_security_table():
     conn.commit()
     conn.close()
 
+# Получить количество неправильных попыток
 def get_attempts():
     conn = sqlite3.connect("vault.db")
     c = conn.cursor()
@@ -64,6 +69,7 @@ def get_attempts():
     conn.close()
     return result[0] if result else 0
 
+# Увеличить количество попыток
 def increment_attempts():
     conn = sqlite3.connect("vault.db")
     c = conn.cursor()
@@ -71,6 +77,7 @@ def increment_attempts():
     conn.commit()
     conn.close()
 
+# Сбросить количество попыток
 def reset_attempts():
     conn = sqlite3.connect("vault.db")
     c = conn.cursor()
