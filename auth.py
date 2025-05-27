@@ -33,6 +33,7 @@ def init_master_password():
                       "- 8 characters\n- 1 uppercase letter\n- 1 lowercase letter\n- 1 digit\n- 1 special character (!@#$...)")
         c.execute('INSERT INTO settings VALUES (?)', (hash_password(master),))
         conn.commit()
+        exit()
     conn.close()
 
 def verify_master_password(input_password):

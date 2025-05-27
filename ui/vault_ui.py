@@ -5,6 +5,12 @@ import sqlite3
 from encryption import decrypt_password
 from ui.add_entry_ui import open_add_entry_ui
 
+def clear_clipboard_after(root, seconds=5):
+    def clear():
+        root.clipboard_clear()
+        messagebox.showinfo("Clipboard", "Password cleared from clipboard.")
+    root.after(seconds * 1000, clear)
+
 def open_vault_ui(fernet_key):
     def load_data():
         for row in tree.get_children():
@@ -35,12 +41,22 @@ def open_vault_ui(fernet_key):
     def add_entry():
         open_add_entry_ui(fernet_key, load_data)
 
+    def copy_selected_password():
+        selected = tree.selection()
+        if not selected:
+            messagebox.showwarning("No Selection", "Please select an entry.")
+            return
+        password = tree.item(selected[0])['values'][2]
+        root.clipboard_clear()
+        root.clipboard_append(password)
+        clear_clipboard_after(root, seconds=5)
+
     root = tk.Tk()
     root.title("Password Vault")
     root.geometry("600x400")
 
     tree = ttk.Treeview(root, columns=("site", "username", "password"), show="headings")
-    tree.heading("site", text="site")
+    tree.heading("site", text="Site")
     tree.heading("username", text="Username")
     tree.heading("password", text="Password")
     tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -50,6 +66,8 @@ def open_vault_ui(fernet_key):
 
     tk.Button(btn_frame, text="Add", command=add_entry).pack(side=tk.LEFT, padx=5)
     tk.Button(btn_frame, text="Delete", command=delete_selected).pack(side=tk.LEFT, padx=5)
+    tk.Button(btn_frame, text="Copy", command=copy_selected_password).pack(side=tk.LEFT, padx=5)
 
     load_data()
     root.mainloop()
+
